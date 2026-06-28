@@ -1,0 +1,17 @@
+AVNS_2YWGrLyNJJSRvjm_GMF - pswd
+Service URI
+    mysql://@mysql-18a06b54-multifarm-db.l.aivencloud.com:24814/defaultdb?ssl-mode=REQUIRED
+Database name
+    defaultdb
+Host
+    mysql-18a06b54-multifarm-db.l.aivencloud.com
+Port
+    24814
+User
+    avnadmin
+Password
+
+    AVNS_2YWGrLyNJJSRvjm_GMF
+
+SSL mode
+    REQUIRED
