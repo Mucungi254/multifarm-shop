@@ -1,0 +1,5 @@
+git init
+git add .
+git commit -m "Multifarm shop system – ready for July"
+git remote add origin https://github.com/yourusername/multifarm-shop.git
+git push -u origin main

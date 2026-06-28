@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - {{ date.strftime('%Y-%m-%d') }}{% endblock %}
+{% block content %}
+
+<!-- Date Navigation -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="fas fa-calendar-day me-2 text-primary"></i>Daily Record</h1>
+    <div>
+        <a href="{{ url_for('dashboard', date=(date - timedelta(days=1)).isoformat()) }}" class="btn btn-outline-secondary btn-sm me-1">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        <a href="{{ url_for('dashboard', date=date.today().isoformat()) }}" class="btn btn-outline-primary btn-sm me-1">
+            <i class="fas fa-calendar-day"></i> Today
+        </a>
+        <a href="{{ url_for('dashboard', date=(date + timedelta(days=1)).isoformat()) }}" class="btn btn-outline-secondary btn-sm">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+    </div>
+</div>
+
+<!-- ===== SUMMARY CARDS ===== -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2 col-6">
+        <div class="summary-box">
+            <div class="label">🥛 Total Milk In</div>
+            <div class="value">{{ (record.john_am_litres or 0) + (record.john_pm_litres or 0) + farmer_total }} <small>L</small></div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-box">
+            <div class="label">🥛 Milk Left</div>
+            <div class="value">{{ milk_left }} <small>L</small></div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-box">
+            <div class="label">💰 Revenue</div>
+            <div class="value">KES {{ total_revenue }}</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-box">
+            <div class="label">💳 Deposits</div>
+            <div class="value">KES {{ reported_deposits }}</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="summary-box {% if money_not_deposited > 0 %}border-danger{% else %}border-success{% endif %}">
+            <div class="label">⚠️ Not Deposited</div>
+            <div class="value {% if money_not_deposited > 0 %}text-danger{% else %}text-success{% endif %}">
+                KES {{ money_not_deposited }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MAIN FORM (Editable for Admin/Agent) ===== -->
+{% if current_user.role in ['admin', 'agent'] %}
+<form method="POST" action="{{ url_for('dashboard', date=date.isoformat()) }}">
+    <input type="hidden" name="date" value="{{ date.isoformat() }}">
+
+    <div class="row">
+        <!-- Milk Intake -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-tint"></i>Milk Intake</div>
+                <div class="card-body">
+                    <h6>John (Rider)</h6>
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label>AM (L)</label>
+                            <input type="number" step="0.1" name="john_am_litres" class="form-control" value="{{ record.john_am_litres if record else 0 }}">
+                        </div>
+                        <div class="col-6">
+                            <label>PM (L)</label>
+                            <input type="number" step="0.1" name="john_pm_litres" class="form-control" value="{{ record.john_pm_litres if record else 0 }}">
+                        </div>
+                    </div>
+                    <hr>
+                    <div><strong>John Total:</strong> {{ john_total }} L</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-hand-holding-usd"></i>Sales</div>
+                <div class="card-body">
+                    <h6>AM Sales</h6>
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label>Litres</label>
+                            <input type="number" step="0.1" name="sales_am_litres" id="sales_am_litres" class="form-control" value="{{ record.sales_am_litres if record else 0 }}">
+                        </div>
+                        <div class="col-6">
+                            <label>Amount (KES)</label>
+                            <input type="number" step="0.1" name="sales_am_amount" id="sales_am_amount" class="form-control" value="{{ record.sales_am_amount if record else 0 }}">
+                        </div>
+                    </div>
+                    <h6>PM Sales</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <label>Litres</label>
+                            <input type="number" step="0.1" name="sales_pm_litres" id="sales_pm_litres" class="form-control" value="{{ record.sales_pm_litres if record else 0 }}">
+                        </div>
+                        <div class="col-6">
+                            <label>Amount (KES)</label>
+                            <input type="number" step="0.1" name="sales_pm_amount" id="sales_pm_amount" class="form-control" value="{{ record.sales_pm_amount if record else 0 }}">
+                        </div>
+                    </div>
+                    <hr>
+                    <div><strong>Total Sold:</strong> {{ total_sold }} L</div>
+                    <div><strong>Revenue:</strong> KES {{ total_revenue }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposits -->
+    <div class="card mt-3">
+        <div class="card-header"><i class="fas fa-university"></i>Deposits & Reconciliation</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <label>OTC Paybill (Customer)</label>
+                    <input type="number" step="0.1" name="otc_paybill" class="form-control" value="{{ record.otc_paybill if record else 0 }}">
+                </div>
+                <div class="col-md-3">
+                    <label>Sarah's Cash Deposit</label>
+                    <input type="number" step="0.1" name="sarah_cash_deposit" class="form-control" value="{{ record.sarah_cash_deposit if record else 0 }}">
+                </div>
+                <div class="col-md-3">
+                    <label>Reported Deposits (auto)</label>
+                    <input type="text" class="form-control" value="{{ reported_deposits }}" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label>Money Not Deposited (auto)</label>
+                    <input type="text" class="form-control" value="{{ money_not_deposited }}" readonly>
+                </div>
+            </div>
+            {% if current_user.role == 'admin' %}
+            <div class="row mt-3">
+                <div class="col-md-3">
+                    <label>Bank Statement (Admin only)</label>
+                    <input type="number" step="0.1" name="bank_statement" class="form-control" value="{{ bank_stmt if record else 0 }}">
+                </div>
+                <div class="col-md-3">
+                    <label>Deposit Discrepancy</label>
+                    <input type="text" class="form-control" value="{{ deposit_discrepancy if deposit_discrepancy is not none else 'N/A' }}" readonly>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Save Button (main form) -->
+    <div class="mt-4 d-grid">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save me-2"></i>Save Record
+        </button>
+    </div>
+</form>
+
+<!-- ===== FARMER DELIVERY SECTION (Separate Form) ===== -->
+<div class="card mt-4">
+    <div class="card-header"><i class="fas fa-user-tie"></i>Farmer Deliveries</div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr><th>Member No</th><th>Name</th><th>Litres</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    {% for d in deliveries %}
+                    <tr>
+                        <td>{{ d.member_no }}</td>
+                        <td>{{ d.name }}</td>
+                        <td>{{ d.litres }}</td>
+                        <td>
+                            <a href="{{ url_for('delete_farmer_delivery', delivery_id=d.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this delivery?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-muted text-center">No farmer deliveries today.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div><strong>Total Farmer Milk:</strong> {{ farmer_total }} L</div>
+
+        <hr>
+        <h6><i class="fas fa-plus-circle me-2 text-success"></i>Add Farmer Delivery</h6>
+        <form method="POST" action="{{ url_for('add_farmer_delivery') }}" class="row g-2 align-items-end">
+            <input type="hidden" name="date" value="{{ date.isoformat() }}">
+            <div class="col-md-4" style="position: relative;">
+                <label class="form-label">Search Farmer</label>
+                <input type="text" class="form-control" id="farmerSearch" placeholder="Type member no or name..." autocomplete="off" required>
+                <div id="farmerDropdown" class="list-group" style="position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto; display: none; background: white; border: 1px solid #ccc; border-radius: 4px; z-index: 1000;"></div>
+                <input type="hidden" name="farmer_id" id="farmer_id" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Litres</label>
+                <input type="number" step="0.1" name="litres" class="form-control" placeholder="Litres" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Add Delivery</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% else %}
+<!-- ===== READ‑ONLY VIEW FOR SECRETARY ===== -->
+<div class="card">
+    <div class="card-header">Summary</div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4"><strong>Milk Left:</strong> {{ milk_left }} L</div>
+            <div class="col-md-4"><strong>Revenue:</strong> KES {{ total_revenue }}</div>
+            <div class="col-md-4"><strong>Not Deposited:</strong> KES {{ money_not_deposited }}</div>
+        </div>
+        <hr>
+        <div><strong>John Total:</strong> {{ john_total }} L</div>
+        <div><strong>Farmer Total:</strong> {{ farmer_total }} L</div>
+        <div><strong>Deposits:</strong> KES {{ reported_deposits }}</div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ===== AUTO-CALCULATE AMOUNT =====
+    // (optional – you can keep or remove; the backend already calculates)
+    const PRICE_PER_LITRE = 60;
+
+    function autoCalculateAmount(litresId, amountId) {
+        const litresInput = document.getElementById(litresId);
+        const amountInput = document.getElementById(amountId);
+        if (litresInput && amountInput) {
+            litresInput.addEventListener('input', function() {
+                const litres = parseFloat(this.value) || 0;
+                amountInput.value = (litres * PRICE_PER_LITRE).toFixed(2);
+            });
+            const initialLitres = parseFloat(litresInput.value) || 0;
+            if (initialLitres > 0 && !amountInput.value) {
+                amountInput.value = (initialLitres * PRICE_PER_LITRE).toFixed(2);
+            }
+        }
+    }
+
+    autoCalculateAmount('sales_am_litres', 'sales_am_amount');
+    autoCalculateAmount('sales_pm_litres', 'sales_pm_amount');
+
+    // ===== EFFICIENT FARMER SEARCH =====
+    const farmers = [
+        {% for f in farmers %}
+        { id: {{ f.id }}, member_no: "{{ f.member_no }}", name: "{{ f.name|escape }}" },
+        {% endfor %}
+    ];
+
+    const searchInput = document.getElementById('farmerSearch');
+    const dropdown = document.getElementById('farmerDropdown');
+    const hiddenId = document.getElementById('farmer_id');
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        if (query.length === 0) {
+            dropdown.style.display = 'none';
+            hiddenId.value = '';
+            return;
+        }
+
+        const matches = farmers.filter(f =>
+            f.member_no.toLowerCase().includes(query) ||
+            f.name.toLowerCase().includes(query)
+        );
+
+        if (matches.length === 0) {
+            dropdown.style.display = 'none';
+            hiddenId.value = '';
+            return;
+        }
+
+        dropdown.innerHTML = '';
+        matches.forEach(f => {
+            const item = document.createElement('a');
+            item.className = 'list-group-item list-group-item-action';
+            item.textContent = f.member_no + ' - ' + f.name;
+            item.dataset.id = f.id;
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                searchInput.value = f.member_no + ' - ' + f.name;
+                hiddenId.value = f.id;
+                dropdown.style.display = 'none';
+            });
+            dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'block';
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target !== searchInput && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}
