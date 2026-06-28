@@ -13,7 +13,11 @@
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                <i class="fas fa-tint me-2"></i>Multifarm Kamburu
+                <!-- Cooperative Logo -->
+                <img src="{{ url_for('static', filename='LOGO.jpeg') }}" 
+                     alt="Multifarm Logo" 
+                     style="height: 45px; width: auto; margin-right: 10px; border-radius: 6px;">
+                <span>Multifarm Kamburu</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>

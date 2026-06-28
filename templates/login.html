@@ -1,33 +1,42 @@
 {% extends "base.html" %}
+{% block title %}Login{% endblock %}
 {% block content %}
+
 <div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-        <div class="card shadow-lg border-0">
-            <div class="card-header bg-transparent text-center pt-4">
-                <i class="fas fa-tint fa-3x text-primary mb-2"></i>
+    <div class="col-md-5">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header bg-transparent border-0 text-center pt-4">
+                <!-- Logo -->
+                <img src="{{ url_for('static', filename='LOGO.jpeg') }}" 
+                     alt="Multifarm Logo" 
+                     style="height: 70px; width: auto; border-radius: 8px; margin-bottom: 12px;">
                 <h3 class="fw-bold">Multifarm Kamburu</h3>
                 <p class="text-muted small">Cooperative Society Shop</p>
             </div>
             <div class="card-body p-4">
                 <form method="POST">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">
+                        <label for="username" class="form-label fw-semibold">
                             <i class="fas fa-user me-2"></i>Username
                         </label>
-                        <input type="text" class="form-control form-control-lg" name="username" required>
+                        <input type="text" class="form-control form-control-lg" id="username" name="username" placeholder="Enter your username" required>
                     </div>
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">
+                        <label for="password" class="form-label fw-semibold">
                             <i class="fas fa-lock me-2"></i>Password
                         </label>
-                        <input type="password" class="form-control form-control-lg" name="password" required>
+                        <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Enter your password" required>
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg w-100">
                         <i class="fas fa-sign-in-alt me-2"></i>Login
                     </button>
                 </form>
             </div>
+            <div class="card-footer bg-transparent border-0 text-center text-muted small py-3">
+                <i class="fas fa-shield-alt me-1"></i> Secure access
+            </div>
         </div>
     </div>
 </div>
+
 {% endblock %}
