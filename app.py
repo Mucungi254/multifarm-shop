@@ -32,7 +32,6 @@ def load_user(user_id):
 
 # ---------- Ensure users exist ----------
 def init_users():
-    # Check if users exist
     result = db.session.execute(text("SELECT id FROM users WHERE username = 'admin'"))
     if not result.fetchone():
         db.session.execute(text(
@@ -83,7 +82,6 @@ def dashboard():
     except:
         selected_date = date.today()
 
-    # ---- POST: Save Record ----
     if request.method == 'POST':
         if current_user.role not in ['admin', 'agent']:
             flash('Not allowed.', 'danger')
@@ -101,7 +99,6 @@ def dashboard():
         sarah_cash = float(request.form.get('sarah_cash_deposit', 0) or 0)
         bank_stmt = float(request.form.get('bank_statement', 0) or 0)
 
-        # Check if record exists
         result = db.session.execute(text("SELECT id FROM daily_records WHERE record_date = :date"), {'date': selected_date})
         existing = result.fetchone()
 
@@ -142,10 +139,7 @@ def dashboard():
         flash('Record saved.', 'success')
         return redirect(url_for('dashboard', date=selected_date.isoformat()))
 
-    # ---- GET: Load Record ----
     record = db.session.execute(text("SELECT * FROM daily_records WHERE record_date = :date"), {'date': selected_date}).fetchone()
-
-    # Farmer deliveries
     deliveries = db.session.execute(text("""
         SELECT fd.*, f.member_no, f.name
         FROM farmer_deliveries fd
@@ -153,10 +147,8 @@ def dashboard():
         WHERE fd.record_date = :date
         ORDER BY f.member_no
     """), {'date': selected_date}).fetchall()
-
     farmers = db.session.execute(text("SELECT id, member_no, name FROM farmers ORDER BY member_no")).fetchall()
 
-    # ---- Calculate totals ----
     if record:
         farmer_total = sum(d.litres for d in deliveries)
         john_total = (record.john_am_litres or 0) + (record.john_pm_litres or 0)
@@ -205,7 +197,6 @@ def add_farmer_delivery():
         flash('Please fill all fields.', 'warning')
         return redirect(url_for('dashboard', date=date_str))
 
-    # Ensure daily record exists
     result = db.session.execute(text("SELECT id FROM daily_records WHERE record_date = :date"), {'date': date_str})
     if not result.fetchone():
         db.session.execute(text("INSERT INTO daily_records (record_date) VALUES (:date)"), {'date': date_str})
@@ -261,7 +252,7 @@ def manage_farmers():
     farmers = db.session.execute(text("SELECT * FROM farmers ORDER BY member_no")).fetchall()
     return render_template('farmers_list.html', farmers=farmers)
 
-# ---------- Import Farmers ----------
+# ---------- Import Farmers (FIXED: read_only=True) ----------
 @app.route('/import_farmers', methods=['GET', 'POST'])
 @login_required
 def import_farmers():
@@ -280,7 +271,8 @@ def import_farmers():
             return redirect(url_for('import_farmers'))
 
         try:
-            wb = openpyxl.load_workbook(file)
+            # READ_ONLY MODE – reduces memory usage and prevents timeout
+            wb = openpyxl.load_workbook(file, read_only=True, data_only=True)
             ws = wb.active
         except Exception as e:
             flash(f'Error reading file: {e}', 'danger')
@@ -322,7 +314,6 @@ def import_farmers():
             rider = str(row[col_map.get('rider')]).strip() if (col_map.get('rider') is not None and row[col_map['rider']]) else 'B'
             if not member_no:
                 continue
-            # Check if exists
             result = db.session.execute(text("SELECT id FROM farmers WHERE member_no = :no"), {'no': member_no})
             if result.fetchone():
                 skipped += 1
@@ -384,7 +375,6 @@ def reports():
 
 # ---------- Init ----------
 with app.app_context():
-    # Ensure tables exist (auto-create)
     db.create_all()
     init_users()
 
