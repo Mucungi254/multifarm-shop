@@ -373,6 +373,14 @@ def reports():
 
     return render_template('reports.html', records=processed, month=month_str)
 
+@app.route('/ping')
+def ping():
+    try:
+        db.session.execute(text("SELECT 1"))
+        return "OK", 200
+    except Exception as e:
+        return f"Error: {e}", 500
+
 # ---------- Init ----------
 with app.app_context():
     db.create_all()
